@@ -31,11 +31,13 @@ namespace VBTBotConsole3.Controllers
         //Writing API Binance public and secret keys
         public TradeController(string publicKey, string secretKey, Controller controller)
         {
+            //Initializig REST client
             BinanceRestClient.SetDefaultOptions(options =>
             {
                 options.ApiCredentials = new ApiCredentials(publicKey, secretKey); // <- Provide you API key/secret in these fields to retrieve data related to your account
             });
 
+            //Timer tick event
             timer.Elapsed += new ElapsedEventHandler(Tick);
             timer.Interval = 10000;
 
@@ -80,7 +82,8 @@ namespace VBTBotConsole3.Controllers
                     quantity += order.Quantity;
                 }
 
-                await CloseMarketShortPosition("BNBUSDC", quantity);
+                if(quantity != 0)
+                    await CloseMarketShortPosition("BNBUSDC", quantity);
 
                 controller.ModelController.ClearBinanceFuturesOrders(ordersAbove.ToList());
             }

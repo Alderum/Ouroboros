@@ -46,8 +46,18 @@ namespace VBTBotConsole3.Controllers
         List<Kline> GetListOfAllAvailableKlines()
         {
             //Get Klines from the database
-            List<Kline> klines = model.Klines.OrderBy(k => k.KlineId).ToList();
-            return klines;
+
+            try
+            {
+                List<Kline> klines = model.Klines.OrderBy(k => k.KlineId).ToList();
+                return klines;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("DB error: " + e.Message);
+            }
+
+            return null;
         }
 
         public async void ClearDatabase()
@@ -232,8 +242,17 @@ namespace VBTBotConsole3.Controllers
 
         List<BinanceFuturesOrder> GetBinanceFuturesOrders()
         {
-            List<BinanceFuturesOrder> orders = model.BinanceFuturesOrders.OrderBy(k => k.CreateTime).ToList();
-            return orders;
+            try
+            {
+                List<BinanceFuturesOrder> orders = model.BinanceFuturesOrders.OrderBy(k => k.CreateTime).ToList();
+                return orders;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("DB error: " + e.Message);
+            }
+
+            return null;
         }
 
         public List<BinanceFuturesOrder> GetAllFuturesOrdersAbove()
