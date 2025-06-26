@@ -1,15 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Binance.Net;
-using Binance.Net.Clients;
-using Binance.Net.Enums;
-using System.Net;
-using System.Numerics;
-using CryptoExchange.Net.CommonObjects;
 using Binance.Net.Objects.Models.Futures;
 
 namespace VBTBotConsole3
@@ -25,7 +14,7 @@ namespace VBTBotConsole3
         {
             var folder = Environment.SpecialFolder.LocalApplicationData;
             var path = Environment.GetFolderPath(folder);
-            DbPath = System.IO.Path.Join(path, "blogging.db");
+            DbPath = System.IO.Path.Join(path, "local.db");
         }
 
         // The following configures EF to create a Sqlite database file in the

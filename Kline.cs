@@ -1,10 +1,4 @@
-﻿using Binance.Net.Clients;
-using Binance.Net.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Binance.Net.Enums;
 
 namespace VBTBotConsole3
 {

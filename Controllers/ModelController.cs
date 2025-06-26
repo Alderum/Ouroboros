@@ -1,14 +1,10 @@
 ﻿using Binance.Net.Clients;
 using Binance.Net.Enums;
 using Binance.Net.Objects.Models.Futures;
-using CryptoExchange.Net.CommonObjects;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using VBTBotConsole3.Indicators;
+using Serilog;
+
+using Program = VTB.VTB;
 
 namespace VBTBotConsole3.Controllers
 {
@@ -46,8 +42,19 @@ namespace VBTBotConsole3.Controllers
         List<Kline> GetListOfAllAvailableKlines()
         {
             //Get Klines from the database
-            List<Kline> klines = model.Klines.OrderBy(k => k.KlineId).ToList();
-            return klines;
+
+            try
+            {
+                List<Kline> klines = model.Klines.OrderBy(k => k.KlineId).ToList();
+                return klines;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "An error occured while getting list of all available klines from the database.");
+                Program.ShowMessage("DB error: " + e.Message);
+            }
+
+            return null;
         }
 
         public async void ClearDatabase()
@@ -71,7 +78,7 @@ namespace VBTBotConsole3.Controllers
 
             DateTime dateTime = DateTime.Now;
             bool incomplete = true;
-            Console.WriteLine("Downloading...");
+            Program.ShowMessage("Downloading...");
 
             int numberOfKlines = 0;
             DateTime openFirstKline = new DateTime();
@@ -97,7 +104,7 @@ namespace VBTBotConsole3.Controllers
                     incomplete = false;
             } while (incomplete);
 
-            Console.WriteLine("Installing...");
+            Program.ShowMessage("Installing...");
             //It's necesary because iterator is modified in another iteration cycle
             klines = klines.OrderBy(k => k.DateTime).ToList();
 
@@ -109,8 +116,8 @@ namespace VBTBotConsole3.Controllers
             await model.Klines.AddRangeAsync(klines);
             await model.SaveChangesAsync();
 
-            Console.WriteLine();
-            Console.WriteLine("Complited ^~^");
+            Program.ShowMessage("");
+            Program.ShowMessage("Complited ^~^");
 
             //Updating list of klines for accurate property
             klines = GetListOfAllAvailableKlines();
@@ -137,12 +144,12 @@ namespace VBTBotConsole3.Controllers
             int iteration = 0;
             do
             {
-                Console.WriteLine("Last kline: " + lastKline.DateTime);
+                Program.ShowMessage("Last kline: " + lastKline.DateTime);
 
                 timeSpan = new TimeSpan(0, 0, 1000 * 60 * 60 * iteration);
                 var exchangeKlinesInfo = await binanceClient.SpotApi.ExchangeData
                     .GetKlinesAsync(symbol, interval, startTime: lastKline.DateTime + timeSpan, limit: 1000);
-                Console.WriteLine("Exchange success: " + exchangeKlinesInfo.Success + ", Error: " + exchangeKlinesInfo.Error);
+                Program.ShowMessage("Exchange success: " + exchangeKlinesInfo.Success + ", Error: " + exchangeKlinesInfo.Error);
 
                 try
                 {
@@ -164,7 +171,7 @@ namespace VBTBotConsole3.Controllers
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("Addind klines to update error: " + e.Message);
+                    Program.ShowMessage("Addind klines to update error: " + e.Message);
                 }
 
                 /* Idea
@@ -200,19 +207,19 @@ namespace VBTBotConsole3.Controllers
             }
             catch(Exception e)
             {
-                Console.WriteLine("Updating database error: " + e.Message);
+                Program.ShowMessage("Updating database error: " + e.Message);
                 if(e.InnerException != null)
                 {
-                    Console.WriteLine("Inner exeption: " + e.InnerException);
+                    Program.ShowMessage("Inner exeption: " + e.InnerException);
                 }
             }
-            Console.WriteLine("Last kline updated");
+            Program.ShowMessage("Last kline updated");
 
             for (int i = 1; i < klinesUpdate.Count; i++)
             {
                 klinesUpdate[i].KlineId = i + lastKline.KlineId;
                 model.Add(klinesUpdate[i]);
-                Console.WriteLine(".");
+                Program.ShowMessage(".");
             }
 
             await model.SaveChangesAsync();
@@ -232,8 +239,17 @@ namespace VBTBotConsole3.Controllers
 
         List<BinanceFuturesOrder> GetBinanceFuturesOrders()
         {
-            List<BinanceFuturesOrder> orders = model.BinanceFuturesOrders.OrderBy(k => k.CreateTime).ToList();
-            return orders;
+            try
+            {
+                List<BinanceFuturesOrder> orders = model.BinanceFuturesOrders.OrderBy(k => k.CreateTime).ToList();
+                return orders;
+            }
+            catch (Exception e)
+            {
+                Program.ShowMessage("DB error: " + e.Message);
+            }
+
+            return null;
         }
 
         public List<BinanceFuturesOrder> GetAllFuturesOrdersAbove()

@@ -1,16 +1,4 @@
-﻿using Binance.Net.Clients;
-using Binance.Net.Enums;
-using CryptoExchange.Net.CommonObjects;
-using CryptoExchange.Net.Converters.JsonNet;
-using CryptoExchange.Net.Converters.SystemTextJson;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
-using VBTBotConsole3.Indicators;
+﻿using VBTBotConsole3.Indicators;
 
 namespace VBTBotConsole3.Controllers
 {

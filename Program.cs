@@ -1,14 +1,10 @@
 ﻿using Binance.Net.Clients;
 using Binance.Net.Enums;
 using Binance.Net.Objects.Models.Futures;
-using CryptoExchange.Net.Authentication;
-using CryptoExchange.Net.Interfaces;
-using CryptoExchange.Net.Objects;
-using System;
-using System.Security.Cryptography.X509Certificates;
+using Serilog;
+using Serilog.Formatting.Json;
 using VBTBotConsole3;
 using VBTBotConsole3.Controllers;
-using VBTBotConsole3.Indicators;
 
 namespace VTB
 {
@@ -21,7 +17,33 @@ namespace VTB
 
         private static async Task Main()
         {
+            //Configuring Serilog for JSON error logging
+
+            var logDir = Path.Combine(AppContext.BaseDirectory, "Logs");
+            Directory.CreateDirectory(logDir);
+
+            var logPath = Path.Combine(logDir, "log.json");
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .Enrich.FromLogContext()
+                .WriteTo.File(
+                    new JsonFormatter(),
+                    logPath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 7
+                )
+                .CreateLogger();
+
+            using (var db = new Model())
+            {
+                db.Database.EnsureCreated();
+            }
+
             Controller controller = new Controller(key, secret);
+
+            //Console.WriteLine("Starting trading session");
+            //controller.TradeController.StartTrading();
 
             #region CommandLine
             string command = "";
@@ -289,6 +311,11 @@ namespace VTB
         {
             Console.WriteLine("Kline close: " + kline.Close);
             Console.WriteLine("Kline date: " + kline.DateTime);
+        }
+
+        public static void ShowMessage(string message)
+        {
+            Console.WriteLine(message);
         }
         
         #endregion

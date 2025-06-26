@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace VBTBotConsole3.Analitics
+﻿namespace VBTBotConsole3.Analitics
 {
     class BuyPosition : IPosition
     {
