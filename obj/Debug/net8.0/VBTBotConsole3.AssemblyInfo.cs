@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VBTBotConsole3")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0c829baf0cbbf6987787a6faf1ff4d58b34b1f15")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2d58c7ea2a71c6fd09127d35759b4a47926650ca")]
 [assembly: System.Reflection.AssemblyProductAttribute("VBTBotConsole3")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VBTBotConsole3")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
