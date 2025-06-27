@@ -39,7 +39,7 @@ namespace VBTBotConsole3.Controllers
             });
 
             //Timer tick event
-            timer.Elapsed += new ElapsedEventHandler(Tick);
+            timer.Elapsed += async (s, e) => await Tick(s, e);
             timer.Interval = 10000;
 
             this.controller = controller;
@@ -66,7 +66,7 @@ namespace VBTBotConsole3.Controllers
             }
         }
 
-        public async void Tick(object source, ElapsedEventArgs args)
+        public async Task Tick(object source, ElapsedEventArgs args)
         {
             try
             {

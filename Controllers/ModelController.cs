@@ -29,8 +29,6 @@ namespace VBTBotConsole3.Controllers
             }
         }
 
-        Model model = new Model();
-
         #endregion
 
         public ModelController()
@@ -42,7 +40,7 @@ namespace VBTBotConsole3.Controllers
         List<Kline> GetListOfAllAvailableKlines()
         {
             //Get Klines from the database
-
+            using var model = new Model();
             try
             {
                 List<Kline> klines = model.Klines.OrderBy(k => k.KlineId).ToList();
@@ -59,6 +57,8 @@ namespace VBTBotConsole3.Controllers
 
         public async void ClearDatabase()
         {
+            using var model = new Model();
+
             var klines = await model.Klines
                             .OrderBy(k => k.KlineId).ToListAsync();
 
@@ -71,6 +71,8 @@ namespace VBTBotConsole3.Controllers
 
         public async Task WriteDownSymbolInfo(string symbol, KlineInterval interval)
         {
+            using var model = new Model();
+
             var binanceClientCalculator = new BinanceRestClient();
 
             List<Kline> klines = new List<Kline>();
@@ -125,6 +127,8 @@ namespace VBTBotConsole3.Controllers
 
         public void DetouchDatabase()
         {
+            using var model = new Model();
+
             model.ChangeTracker.Clear();
             //Updating list of klines for accurate property
             klines = null;
@@ -132,6 +136,8 @@ namespace VBTBotConsole3.Controllers
 
         public async Task UpdateSymbol(string symbol, KlineInterval interval)
         {
+            using var model = new Model();
+
             Kline lastKline = model.Klines.OrderByDescending(k => k.KlineId).First();
 
             var binanceClient = new BinanceRestClient();
@@ -230,6 +236,8 @@ namespace VBTBotConsole3.Controllers
 
         public async Task WriteNewOrderDown(BinanceFuturesOrder order)
         {
+            using var model = new Model();
+
             model.BinanceFuturesOrders.Add(order);
             await model.SaveChangesAsync();
 
@@ -239,6 +247,8 @@ namespace VBTBotConsole3.Controllers
 
         List<BinanceFuturesOrder> GetBinanceFuturesOrders()
         {
+            using var model = new Model();
+
             try
             {
                 List<BinanceFuturesOrder> orders = model.BinanceFuturesOrders.OrderBy(k => k.CreateTime).ToList();
@@ -273,6 +283,8 @@ namespace VBTBotConsole3.Controllers
 
         public void ClearBinanceFuturesOrders()
         {
+            using var model = new Model();
+
             var rows = orders;
             foreach (var row in rows)
             {
@@ -286,6 +298,8 @@ namespace VBTBotConsole3.Controllers
 
         public void ClearBinanceFuturesOrders(List<BinanceFuturesOrder> orders)
         {
+            using var model = new Model();
+
             foreach (var order in orders)
             {
                 model.BinanceFuturesOrders.Remove(order);
