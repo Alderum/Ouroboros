@@ -15,7 +15,7 @@ namespace VBTBotConsole3.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.2");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.6");
 
             modelBuilder.Entity("Binance.Net.Objects.Models.Futures.BinanceFuturesOrder", b =>
                 {
@@ -53,7 +53,7 @@ namespace VBTBotConsole3.Migrations
                         .HasColumnType("TEXT")
                         .HasAnnotation("Relational:JsonPropertyName", "time");
 
-                    b.Property<decimal?>("CummulativeQuantity")
+                    b.Property<decimal?>("CumulativeQuantity")
                         .HasColumnType("TEXT")
                         .HasAnnotation("Relational:JsonPropertyName", "cumQty");
 

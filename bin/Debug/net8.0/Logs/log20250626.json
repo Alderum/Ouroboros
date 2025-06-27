@@ -1,0 +1,50 @@
+{
+  "Timestamp": "2025-06-26T18:51:05.0409765+02:00",
+  "Level": "Information",
+  "MessageTemplate": "This will be real JSON now!"
+} {
+  "Timestamp": "2025-06-26T18:51:35.6109531+02:00",
+  "Level": "Information",
+  "MessageTemplate": "This will be real JSON now!"
+
+} {
+  "Timestamp": "2025-06-26T18:56:57.8224215+02:00",
+  "Level": "Information",
+  "MessageTemplate": "This will be real JSON now!"
+
+} {
+  "Timestamp": "2025-06-26T18:57:08.3257871+02:00",
+  "Level": "Error",
+  "MessageTemplate": "An exception occured while requesting positions of the user.",
+  "Exception": "System.ArgumentNullException: Value cannot be null. (Parameter 'source')\r\n   at System.Linq.ThrowHelper.ThrowArgumentNullException(ExceptionArgument argument)\r\n   at System.Linq.Enumerable.ToList[TSource](IEnumerable`1 source)\r\n   at VBTBotConsole3.Controllers.TradeController.ShowOpenPositions() in D:\\Programming\\VS_Progects\\C#\\VBTBotConsole3\\VBTBotConsole3\\Controllers\\TradeController.cs:line 116"
+
+} {
+  "Timestamp": "2025-06-26T18:57:09.6848383+02:00",
+  "Level": "Error",
+  "MessageTemplate": "An error occured while processing an request to Binance REST service in order to get client balance.",
+  "Exception": "System.ArgumentNullException: Value cannot be null. (Parameter 'source')\r\n   at System.Linq.ThrowHelper.ThrowArgumentNullException(ExceptionArgument argument)\r\n   at System.Linq.Enumerable.MaxBy[TSource,TKey](IEnumerable`1 source, Func`2 keySelector, IComparer`1 comparer)\r\n   at System.Linq.Enumerable.MaxBy[TSource,TKey](IEnumerable`1 source, Func`2 keySelector)\r\n   at VBTBotConsole3.Controllers.TradeController.ShowBalance() in D:\\Programming\\VS_Progects\\C#\\VBTBotConsole3\\VBTBotConsole3\\Controllers\\TradeController.cs:line 55"
+} {
+  "Timestamp": "2025-06-26T21:34:20.7577146+02:00",
+  "Level": "Information",
+  "MessageTemplate": "This will be real JSON now!"
+} {
+  "Timestamp": "2025-06-26T21:34:32.8419127+02:00",
+  "Level": "Error",
+  "MessageTemplate": "An exception occured while requesting positions of the user.",
+  "Exception": "System.ArgumentNullException: Value cannot be null. (Parameter 'source')\r\n   at System.Linq.ThrowHelper.ThrowArgumentNullException(ExceptionArgument argument)\r\n   at System.Linq.Enumerable.ToList[TSource](IEnumerable`1 source)\r\n   at VBTBotConsole3.Controllers.TradeController.ShowOpenPositions() in D:\\Programming\\VS_Progects\\C#\\VBTBotConsole3\\VBTBotConsole3\\Controllers\\TradeController.cs:line 127"
+} {
+  "Timestamp": "2025-06-26T21:35:08.0694319+02:00",
+  "Level": "Information",
+  "MessageTemplate": "This will be real JSON now!"
+} {
+  "Timestamp": "2025-06-26T21:35:15.6982608+02:00",
+  "Level": "Error",
+  "MessageTemplate": "An exception occured while requesting positions of the user.",
+  "Exception": "System.ArgumentNullException: Value cannot be null. (Parameter 'source')\r\n   at System.Linq.ThrowHelper.ThrowArgumentNullException(ExceptionArgument argument)\r\n   at System.Linq.Enumerable.ToList[TSource](IEnumerable`1 source)\r\n   at VBTBotConsole3.Controllers.TradeController.ShowOpenPositions() in D:\\Programming\\VS_Progects\\C#\\VBTBotConsole3\\VBTBotConsole3\\Controllers\\TradeController.cs:line 127"
+} {
+  "Timestamp": "2025-06-26T21:35:16.4320601+02:00",
+  "Level": "Error",
+  "MessageTemplate": "An error occured while processing an request to Binance REST service in order to get client balance.",
+  "Exception": "System.ArgumentNullException: Value cannot be null. (Parameter 'source')\r\n   at System.Linq.ThrowHelper.ThrowArgumentNullException(ExceptionArgument argument)\r\n   at System.Linq.Enumerable.MaxBy[TSource,TKey](IEnumerable`1 source, Func`2 keySelector, IComparer`1 comparer)\r\n   at System.Linq.Enumerable.MaxBy[TSource,TKey](IEnumerable`1 source, Func`2 keySelector)\r\n   at VBTBotConsole3.Controllers.TradeController.ShowBalance() in D:\\Programming\\VS_Progects\\C#\\VBTBotConsole3\\VBTBotConsole3\\Controllers\\TradeController.cs:line 57"
+
+}

@@ -242,10 +242,13 @@ namespace VBTBotConsole3.Controllers
             try
             {
                 List<BinanceFuturesOrder> orders = model.BinanceFuturesOrders.OrderBy(k => k.CreateTime).ToList();
-                return orders;
+                
+                if (orders != null)
+                    return orders;
             }
             catch (Exception e)
             {
+                Log.Error(e, "An error occured while getting binance futures orders from Binance service.");
                 Program.ShowMessage("DB error: " + e.Message);
             }
 

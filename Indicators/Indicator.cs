@@ -1,5 +1,6 @@
 ﻿using Binance.Net.Enums;
 using Binance.Net.Objects.Models.Futures;
+using CryptoExchange.Net;
 using VBTBotConsole3.Analitics;
 using VBTBotConsole3.Controllers;
 using IPosition = VBTBotConsole3.Analitics.IPosition;
@@ -41,20 +42,32 @@ namespace VBTBotConsole3.Indicators
         {
             bool positiveSignal = false;
 
+            //Ubdate data from database
             DataUpdate();
 
             var lastKline = klines.LastOrDefault();
             var lastEnvelope = envelopes.LastOrDefault();
 
-            var sellOrders = from o in orders where o.Side == OrderSide.Sell select o;
-            var lastOrder = sellOrders.LastOrDefault();
+            //If there is no orders in databse we have to make sure, that it works
+            IEnumerable<BinanceFuturesOrder> sellOrders = null;
+            BinanceFuturesOrder lastOrder = null;
 
             //Delta for orders, orders canno't be close to each other
-            decimal priceDifference = 0;
-            if (lastOrder != null)
-                priceDifference = Math.Abs(lastKline.Close - lastOrder.Price);
-            else
-                priceDifference = 31;
+            decimal priceDifference = 31;
+
+            //Is there any orders in the databse?
+            if (orders.ValidateNotNull != null)
+            {
+                sellOrders = from o in orders where o.Side == OrderSide.Buy select o;
+
+                //Is there any buy orders in the database?
+                if (sellOrders.ValidateNotNull != null)
+                {
+                    lastOrder = sellOrders.LastOrDefault();
+                    if(lastOrder != null)
+                        priceDifference = Math.Abs(lastKline.Close - lastOrder.Price);
+                }
+            }
 
             Console.WriteLine("Price difference short: " + priceDifference);
 
@@ -69,20 +82,33 @@ namespace VBTBotConsole3.Indicators
         {
             bool positiveSignal = false;
 
+            //Update data from database
             DataUpdate();
 
             var lastKline = klines.LastOrDefault();
             var lastEnvelope = envelopes.LastOrDefault();
 
-            var buyOrders = from o in orders where o.Side == OrderSide.Buy select o;
-            var lastOrder = buyOrders.LastOrDefault();
+            //If there is no orders in databse we have to make sure, that it works
+            IEnumerable<BinanceFuturesOrder> buyOrders = null;
+            BinanceFuturesOrder lastOrder = null;
 
             //Delta for orders, orders canno't be close to each other
-            decimal priceDifference = 0;
-            if (lastOrder != null)
-                priceDifference = Math.Abs(lastKline.Close - lastOrder.Price);
-            else
-                priceDifference = 31;
+            decimal priceDifference = 31;
+
+            //Is there any orders in the databse?
+            if (orders.ValidateNotNull != null)
+            {
+                buyOrders = from o in orders where o.Side == OrderSide.Buy select o;
+
+                //Is there any buy orders in the database?
+                if(buyOrders.ValidateNotNull != null)
+                {
+                    lastOrder = buyOrders.LastOrDefault();
+                    
+                    if(lastOrder != null)
+                        priceDifference = Math.Abs(lastKline.Close - lastOrder.Price);
+                }
+            }
 
             Console.WriteLine("Price difference short: " + priceDifference);
 

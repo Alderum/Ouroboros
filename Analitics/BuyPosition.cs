@@ -1,3 +1,4 @@
+
 ﻿namespace VBTBotConsole3.Analitics
 {
     class BuyPosition : IPosition

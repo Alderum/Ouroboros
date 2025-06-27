@@ -42,8 +42,8 @@ namespace VTB
 
             Controller controller = new Controller(key, secret);
 
-            //Console.WriteLine("Starting trading session");
-            //controller.TradeController.StartTrading();
+            Console.WriteLine("Starting trading session");
+            controller.TradeController.StartTrading();
 
             #region CommandLine
             string command = "";
