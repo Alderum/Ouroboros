@@ -30,7 +30,7 @@
                 envelope.Id = klines[a].KlineId;
                 envelope.NumberOfLines = movingCount;
                 envelope.Depth = movingAvarages[a].Depth;
-                envelope.DateTime = klines[a].DateTime;
+                envelope.DateTime = klines[a].OpenTime;
 
                 envelope.Low = new List<decimal>();
                 envelope.High = new List<decimal>();

@@ -65,13 +65,13 @@ namespace VBTBotConsole3.Indicators
                 {
                     lastOrder = sellOrders.LastOrDefault();
                     if(lastOrder != null)
-                        priceDifference = Math.Abs(lastKline.Close - lastOrder.Price);
+                        priceDifference = Math.Abs(lastKline.ClosePrice - lastOrder.Price);
                 }
             }
 
             Console.WriteLine("Price difference short: " + priceDifference);
 
-            if (lastKline.High >= lastEnvelope.High[0] && lastKline.Low <= lastEnvelope.High[0]
+            if (lastKline.HighPrice >= lastEnvelope.High[0] && lastKline.LowPrice <= lastEnvelope.High[0]
                 && priceDifference >= 5)
                 positiveSignal = true;
 
@@ -106,13 +106,13 @@ namespace VBTBotConsole3.Indicators
                     lastOrder = buyOrders.LastOrDefault();
                     
                     if(lastOrder != null)
-                        priceDifference = Math.Abs(lastKline.Close - lastOrder.Price);
+                        priceDifference = Math.Abs(lastKline.ClosePrice - lastOrder.Price);
                 }
             }
 
             Console.WriteLine("Price difference short: " + priceDifference);
 
-            if (lastKline.High >= lastEnvelope.Low[0] && lastKline.Low <= lastEnvelope.Low[0]
+            if (lastKline.HighPrice >= lastEnvelope.Low[0] && lastKline.LowPrice <= lastEnvelope.Low[0]
                 && priceDifference >= 5)
                 positiveSignal = true;
 
@@ -140,7 +140,7 @@ namespace VBTBotConsole3.Indicators
         public void ColisionWithAdaptiveEnvelope()
         {
             //Time gap from wich klines are being taken
-            klines = klines.FindAll(k => k.DateTime >= DateTime.Now - new TimeSpan(90, 0, 0, 0));
+            klines = klines.FindAll(k => k.OpenTime >= DateTime.Now - new TimeSpan(90, 0, 0, 0));
 
             //Here we use list of our interface for better analitics
             List<IPosition> positions = new List<IPosition>();
@@ -153,7 +153,7 @@ namespace VBTBotConsole3.Indicators
 
                 //Checking center
                 centerEnvelope = envelopes[k.KlineId - 1].Center;
-                if (k.High >= centerEnvelope && k.Low <= centerEnvelope)
+                if (k.HighPrice >= centerEnvelope && k.LowPrice <= centerEnvelope)
                 {
                     //CloseBuyPositions(positions, k);
                 }
@@ -164,12 +164,12 @@ namespace VBTBotConsole3.Indicators
                     //Checking low
                     lowEnvelope = envelopes[k.KlineId - 1].Low[i];
 
-                    if (k.High > lowEnvelope && k.Close <= lowEnvelope && i == 1)
+                    if (k.HighPrice > lowEnvelope && k.ClosePrice <= lowEnvelope && i == 1)
                     {
                         CloseSellPositions(positions, k);
                     }
 
-                    if (k.Low < lowEnvelope && k.Close >= lowEnvelope && i == 1)
+                    if (k.LowPrice < lowEnvelope && k.ClosePrice >= lowEnvelope && i == 1)
                     {
                         CloseSellPositions(positions, k);
                     }
@@ -177,7 +177,7 @@ namespace VBTBotConsole3.Indicators
                     //Checking high
                     highEnvelope = envelopes[k.KlineId - 1].High[i];
 
-                    if (k.High > highEnvelope && k.Close <= highEnvelope)
+                    if (k.HighPrice > highEnvelope && k.ClosePrice <= highEnvelope)
                     {
                         OpenSellPositions(positions, k);
                     }
@@ -188,7 +188,7 @@ namespace VBTBotConsole3.Indicators
                     {
                         openPositions.OrderBy(p => p.EntryDateTime);
                         var latestEntry = openPositions.First();
-                        if (latestEntry.EntryDateTime.CompareTo(k.DateTime - new TimeSpan(1, 0, 0, 0)) < 0)
+                        if (latestEntry.EntryDateTime.CompareTo(k.OpenTime - new TimeSpan(1, 0, 0, 0)) < 0)
                         {
                             CloseSellPositions(positions, k);
                         }
@@ -317,8 +317,8 @@ namespace VBTBotConsole3.Indicators
             
             foreach(var p in openPositions)
             {
-                p.ClosePrice = kline.Close;
-                p.CloseDateTime = kline.DateTime + new TimeSpan(0, 0, 0, (int)kline.Interval);
+                p.ClosePrice = kline.ClosePrice;
+                p.CloseDateTime = kline.CloseTime;
                 p.Completed = true;
             }
         }
@@ -329,8 +329,8 @@ namespace VBTBotConsole3.Indicators
 
             foreach (var p in openPositions)
             {
-                p.ClosePrice = kline.Close;
-                p.CloseDateTime = kline.DateTime + new TimeSpan(0, 0, 0, (int)kline.Interval);
+                p.ClosePrice = kline.ClosePrice;
+                p.CloseDateTime = kline.CloseTime;
                 p.Completed = true;
             }
         }
@@ -339,8 +339,8 @@ namespace VBTBotConsole3.Indicators
         {
             SellPosition sell = new SellPosition()
             {
-                EntryPrice = k.Close,
-                EntryDateTime = k.DateTime + new TimeSpan(0, 0, 0, (int)k.Interval)
+                EntryPrice = k.ClosePrice,
+                EntryDateTime = k.CloseTime
             };
 
             positions.Add(sell);
@@ -350,8 +350,8 @@ namespace VBTBotConsole3.Indicators
         {
             BuyPosition buy = new BuyPosition()
             {
-                EntryPrice = k.Close,
-                EntryDateTime = k.DateTime + new TimeSpan(0, 0, 0, (int)k.Interval)
+                EntryPrice = k.ClosePrice,
+                EntryDateTime = k.CloseTime
             };
 
             positions.Add(buy);

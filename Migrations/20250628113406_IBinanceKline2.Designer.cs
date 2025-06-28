@@ -11,8 +11,8 @@ using VBTBotConsole3;
 namespace VBTBotConsole3.Migrations
 {
     [DbContext(typeof(Model))]
-    [Migration("20250627112050_FixOrderMapping")]
-    partial class FixOrderMapping
+    [Migration("20250628113406_IBinanceKline2")]
+    partial class IBinanceKline2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -151,10 +151,19 @@ namespace VBTBotConsole3.Migrations
                     b.Property<decimal>("Close")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal>("ClosePrice")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CloseTime")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("DateTime")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("High")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("HighPrice")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Interval")
@@ -163,7 +172,31 @@ namespace VBTBotConsole3.Migrations
                     b.Property<decimal>("Low")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal>("LowPrice")
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("Open")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("OpenPrice")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("OpenTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("QuoteVolume")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TakerBuyBaseVolume")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TakerBuyQuoteVolume")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TradeCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Volume")
                         .HasColumnType("TEXT");
 
                     b.HasKey("KlineId");

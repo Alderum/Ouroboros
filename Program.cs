@@ -42,8 +42,8 @@ namespace VTB
 
             Controller controller = new Controller(key, secret);
 
-            Console.WriteLine("Starting trading session");
-            controller.TradeController.StartTrading();
+            //Console.WriteLine("Starting trading session");
+            //controller.TradeController.StartTrading();
 
             #region CommandLine
             string command = "";
@@ -75,12 +75,12 @@ namespace VTB
                         for (int i = 0; i < klines.Count; i++)
                         {
                             Console.WriteLine("Kline Id: " + klines[i].KlineId
-                                + " High: " + klines[i].High +
-                                 " Open: " + klines[i].Open +
-                                 " Close: " + klines[i].Close +
-                                 " Low: " + klines[i].Low +
-                                 " Interval: " + klines[i].Interval +
-                                 " Date: " + klines[i].DateTime);
+                                + " High: " + klines[i].HighPrice +
+                                 " Open: " + klines[i].OpenPrice +
+                                 " Close: " + klines[i].ClosePrice +
+                                 " Low: " + klines[i].LowPrice +
+                                 " Interval: " + (klines[i].CloseTime - klines[i].OpenTime) +
+                                 " Date: " + klines[i].OpenTime);
                         }
                         break;
 
@@ -309,8 +309,8 @@ namespace VTB
 
         public static void ShowKline(Kline kline)
         {
-            Console.WriteLine("Kline close: " + kline.Close);
-            Console.WriteLine("Kline date: " + kline.DateTime);
+            Console.WriteLine("Kline close: " + kline.ClosePrice);
+            Console.WriteLine("Kline date: " + kline.OpenTime);
         }
 
         public static void ShowMessage(string message)

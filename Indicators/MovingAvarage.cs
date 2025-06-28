@@ -13,9 +13,9 @@
 
             MovingAvarage atr = new MovingAvarage();
 
-            atr.Value = klines[0].High - klines[0].Low;
+            atr.Value = klines[0].HighPrice - klines[0].LowPrice;
             atr.Id = klines[0].KlineId;
-            atr.DateTime = klines[0].DateTime;
+            atr.DateTime = klines[0].OpenTime;
             atr.Depth = (int)depth;
 
             atrs.Add(atr);
@@ -28,11 +28,11 @@
 
                 //True range of all Awailable klines
                 for (int a = 0; a <= i; a++)
-                    atr.Value += klines[i - a].High - klines[i - a].Low;
+                    atr.Value += klines[i - a].HighPrice - klines[i - a].LowPrice;
 
                 atr.Id = klines[i].KlineId;
                 atr.Value /= i;
-                atr.DateTime = klines[i].DateTime;
+                atr.DateTime = klines[i].OpenTime;
                 atr.Depth = (int)depth;
 
                 atrs.Add(atr);
@@ -44,11 +44,11 @@
                 atr = new MovingAvarage();
 
                 for (int a = 0; a <= depth; a++)
-                    atr.Value += klines[i - a].High - klines[i - a].Low;
+                    atr.Value += klines[i - a].HighPrice - klines[i - a].LowPrice;
                 atr.Value /= depth;
 
                 atr.Id = klines[i].KlineId;
-                atr.DateTime = klines[i].DateTime;
+                atr.DateTime = klines[i].OpenTime;
                 atr.Depth = (int)depth;
 
                 atrs.Add(atr);
@@ -67,7 +67,7 @@
             //True range is differance between high and low of kline
             List<decimal> trueRanges = new List<decimal>();
             for (int i = 0; i < klines.Count; i++)
-                trueRanges.Add(klines[i].High - klines[i].Low);
+                trueRanges.Add(klines[i].HighPrice - klines[i].LowPrice);
 
             //We don't use atr, because in TV we use rma for calculatin true ranges
             //avarages
@@ -81,7 +81,7 @@
                 atr.Value = rmaTrueRanges[i];
 
                 atr.Id = klines[i].KlineId;
-                atr.DateTime = klines[i].DateTime;
+                atr.DateTime = klines[i].OpenTime;
                 atr.Depth = (int)depth;
 
                 atrs.Add(atr);
@@ -103,8 +103,8 @@
             MovingAvarage ema = new MovingAvarage();
             if(klines.Count != 0)
             {
-                ema.Value = klines[0].Close * weighting + klines[0].Open * (1 - weighting);
-                ema.DateTime = klines[0].DateTime;
+                ema.Value = klines[0].ClosePrice * weighting + klines[0].OpenPrice * (1 - weighting);
+                ema.DateTime = klines[0].OpenTime;
                 ema.Id = klines[0].KlineId;
                 ema.Depth = (int)depth;
 
@@ -114,8 +114,8 @@
                 for (int i = 1; i <= klines.Count - 1; i++)
                 {
                     ema = new MovingAvarage();
-                    ema.Value = klines[i].Close * weighting + emas[i - 1].Value * (1 - weighting);
-                    ema.DateTime = klines[i].DateTime;
+                    ema.Value = klines[i].ClosePrice * weighting + emas[i - 1].Value * (1 - weighting);
+                    ema.DateTime = klines[i].OpenTime;
                     ema.Id = klines[i].KlineId;
                     ema.Depth = (int)depth;
                     emas.Add(ema);

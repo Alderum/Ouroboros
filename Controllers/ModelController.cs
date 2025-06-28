@@ -3,7 +3,7 @@ using Binance.Net.Enums;
 using Binance.Net.Objects.Models.Futures;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-
+using System.Threading.Tasks;
 using Program = VTB.VTB;
 
 namespace VBTBotConsole3.Controllers
@@ -92,14 +92,8 @@ namespace VBTBotConsole3.Controllers
 
                 foreach (var k in exchangeKlines)
                 {
-                    kline = new Kline();
-                    kline.Interval = interval;
-                    kline.Open = k.OpenPrice;
-                    kline.Close = k.ClosePrice;
-                    kline.DateTime = k.OpenTime;
-                    kline.High = k.HighPrice;
-                    kline.Low = k.LowPrice;
-                    klines.Add(kline);
+                    kline = new Kline(k);
+                    kline.KlineId = k.GetHashCode();
                 }
 
                 if (exchangeKlines.Count < 1000)
@@ -108,7 +102,7 @@ namespace VBTBotConsole3.Controllers
 
             Program.ShowMessage("Installing...");
             //It's necesary because iterator is modified in another iteration cycle
-            klines = klines.OrderBy(k => k.DateTime).ToList();
+            klines = klines.OrderBy(k => k.OpenTime).ToList();
 
             for (int i = 0; i < klines.Count; i++)
             {
@@ -150,11 +144,11 @@ namespace VBTBotConsole3.Controllers
             int iteration = 0;
             do
             {
-                Program.ShowMessage("Last kline: " + lastKline.DateTime);
+                Program.ShowMessage("Last kline: " + lastKline.OpenTime);
 
                 timeSpan = new TimeSpan(0, 0, 1000 * 60 * 60 * iteration);
                 var exchangeKlinesInfo = await binanceClient.SpotApi.ExchangeData
-                    .GetKlinesAsync(symbol, interval, startTime: lastKline.DateTime + timeSpan, limit: 1000);
+                    .GetKlinesAsync(symbol, interval, startTime: lastKline.OpenTime + timeSpan, limit: 1000);
                 Program.ShowMessage("Exchange success: " + exchangeKlinesInfo.Success + ", Error: " + exchangeKlinesInfo.Error);
 
                 try
@@ -162,13 +156,8 @@ namespace VBTBotConsole3.Controllers
                     var exchangeKlines = exchangeKlinesInfo.Data.ToList();
                     for (int i = 0; i < exchangeKlines.Count; i++)
                     {
-                        kline = new Kline();
-                        kline.Interval = interval;
-                        kline.Open = exchangeKlines[i].OpenPrice;
-                        kline.Close = exchangeKlines[i].ClosePrice;
-                        kline.DateTime = exchangeKlines[i].OpenTime;
-                        kline.High = exchangeKlines[i].HighPrice;
-                        kline.Low = exchangeKlines[i].LowPrice;
+                        kline = new Kline(exchangeKlines[i]);
+                        kline.KlineId = exchangeKlines[i].GetHashCode();
                         klinesUpdate.Add(kline);
                     }
 
@@ -202,12 +191,10 @@ namespace VBTBotConsole3.Controllers
 
             try
             {
-                var update = klinesUpdate.OrderBy(k => k.DateTime);
+                var update = klinesUpdate.OrderBy(k => k.OpenTime);
                 klinesUpdate = update.ToList();
 
-                lastKline.Close = klinesUpdate[0].Close;
-                lastKline.High = klinesUpdate[0].High;
-                lastKline.Low = klinesUpdate[0].Low;
+                lastKline = klinesUpdate[0];
                 model.Update(lastKline);
                 await model.SaveChangesAsync();
             }
@@ -269,7 +256,7 @@ namespace VBTBotConsole3.Controllers
         {
             var ordersAbove =
             from o in orders
-                where o.Price > klines.LastOrDefault().Close
+                where o.Price > klines.LastOrDefault().ClosePrice
                 select o;
 
             List<BinanceFuturesOrder> ordersAboveInList = new List<BinanceFuturesOrder>();
@@ -308,6 +295,82 @@ namespace VBTBotConsole3.Controllers
 
             //Updating order list for accurate property manifestation
             this.orders = GetBinanceFuturesOrders();
+        }
+
+        public static async Task InstallKlines()
+        {
+            try
+            {
+                using var model = new Model();
+
+                model.Database.EnsureCreated();
+
+
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "An error occured while installing the klines.");
+                Program.ShowMessage("DB error in  InstallKlines: " + e.Message);
+            }
+        }
+
+        static async Task<Kline> GetFirstKlineAsync(string symbol, KlineInterval interval)
+        {
+            try
+            {
+                //
+                var client = new BinanceRestClient();
+                var result = await client.UsdFuturesApi.ExchangeData
+                    .GetKlinesAsync(symbol, interval,
+                                    startTime: new DateTime(2007, 1, 31), limit: 1);
+
+                if (result.Success && result.Data.Any())
+                {
+                    var first = result.Data.First();
+                    Console.WriteLine($"Earliest Kline open time: {first.OpenTime}");
+                    return new Kline(result.Data.FirstOrDefault());
+                }
+                else
+                {
+                    Console.WriteLine($"Error or no data: {result.Error}");
+                    return null;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "An error occurred while getting the first kline of the symbol.");
+                Program.ShowMessage("DB error in GetFirstKline: " + e.Message);
+            }
+
+            return null;
+        }
+
+        static async Task<Kline> GetLastKlineAsync()
+        {
+            try
+            {
+                using (var db = new Model())
+                {
+                    var lastKline = await db.Klines
+                                            .OrderByDescending(k => k.OpenTime)
+                                            .FirstOrDefaultAsync();
+
+                    if (lastKline != null)
+                    {
+                        Console.WriteLine($"Latest kline at {lastKline.OpenTime}");
+                        return lastKline;
+                    }
+
+                    return null;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "An error occurred while getting last kline from the databse.");
+                Program.ShowMessage("DB error in GetFirstKline: " + e.Message);
+            }
+
+            return null;
         }
     }
 }

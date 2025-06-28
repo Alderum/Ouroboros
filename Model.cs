@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Binance.Net.Objects.Models.Futures;
+using Binance.Net.Objects.Models;
 
 namespace VBTBotConsole3
 {
