@@ -11,8 +11,8 @@ using VBTBotConsole3;
 namespace VBTBotConsole3.Migrations
 {
     [DbContext(typeof(Model))]
-    [Migration("20250628113406_IBinanceKline2")]
-    partial class IBinanceKline2
+    [Migration("20250701121346_KeyValue")]
+    partial class KeyValue
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -148,34 +148,16 @@ namespace VBTBotConsole3.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal>("Close")
-                        .HasColumnType("TEXT");
-
                     b.Property<decimal>("ClosePrice")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CloseTime")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("DateTime")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("High")
-                        .HasColumnType("TEXT");
-
                     b.Property<decimal>("HighPrice")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Interval")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Low")
-                        .HasColumnType("TEXT");
-
                     b.Property<decimal>("LowPrice")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("Open")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("OpenPrice")
@@ -186,6 +168,9 @@ namespace VBTBotConsole3.Migrations
 
                     b.Property<decimal>("QuoteVolume")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("SymbolId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<decimal>("TakerBuyBaseVolume")
                         .HasColumnType("TEXT");

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VBTBotConsole3;
 
@@ -10,9 +11,11 @@ using VBTBotConsole3;
 namespace VBTBotConsole3.Migrations
 {
     [DbContext(typeof(Model))]
-    partial class ModelModelSnapshot : ModelSnapshot
+    [Migration("20250701121536_NewKeyLogic")]
+    partial class NewKeyLogic
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.6");
@@ -181,16 +184,6 @@ namespace VBTBotConsole3.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("SymbolId", "OpenTime");
-
-                    b.HasIndex("CloseTime")
-                        .IsUnique();
-
-                    b.HasIndex("OpenTime")
-                        .IsUnique();
-
-                    b.HasIndex("SymbolId");
-
-                    b.HasIndex("SymbolId", "OpenTime");
 
                     b.ToTable("Klines");
                 });

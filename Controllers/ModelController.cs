@@ -1,6 +1,9 @@
 ﻿using Binance.Net.Clients;
 using Binance.Net.Enums;
+using Binance.Net.Interfaces;
 using Binance.Net.Objects.Models.Futures;
+using CryptoExchange.Net;
+using CryptoExchange.Net.Objects;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Threading.Tasks;
@@ -69,56 +72,6 @@ namespace VBTBotConsole3.Controllers
             klines = GetListOfAllAvailableKlines();
         }
 
-        public async Task WriteDownSymbolInfo(string symbol, KlineInterval interval)
-        {
-            using var model = new Model();
-
-            var binanceClientCalculator = new BinanceRestClient();
-
-            List<Kline> klines = new List<Kline>();
-            Kline kline;
-
-            DateTime dateTime = DateTime.Now;
-            bool incomplete = true;
-            Program.ShowMessage("Downloading...");
-
-            int numberOfKlines = 0;
-            DateTime openFirstKline = new DateTime();
-            do
-            {
-                //Get klines from Binance database 1 time
-                var exchangeKlinesInfo = await binanceClientCalculator.SpotApi.ExchangeData.GetKlinesAsync(symbol, interval, endTime: DateTime.Now - new TimeSpan(0, 0, 0, klines.Count * (int)interval), limit: 1000);
-                var exchangeKlines = exchangeKlinesInfo.Data.ToList();
-
-                foreach (var k in exchangeKlines)
-                {
-                    kline = new Kline(k);
-                    kline.KlineId = k.GetHashCode();
-                }
-
-                if (exchangeKlines.Count < 1000)
-                    incomplete = false;
-            } while (incomplete);
-
-            Program.ShowMessage("Installing...");
-            //It's necesary because iterator is modified in another iteration cycle
-            klines = klines.OrderBy(k => k.OpenTime).ToList();
-
-            for (int i = 0; i < klines.Count; i++)
-            {
-                klines[i].KlineId = i + 1;
-            }
-
-            await model.Klines.AddRangeAsync(klines);
-            await model.SaveChangesAsync();
-
-            Program.ShowMessage("");
-            Program.ShowMessage("Complited ^~^");
-
-            //Updating list of klines for accurate property
-            klines = GetListOfAllAvailableKlines();
-        }
-
         public void DetouchDatabase()
         {
             using var model = new Model();
@@ -126,99 +79,6 @@ namespace VBTBotConsole3.Controllers
             model.ChangeTracker.Clear();
             //Updating list of klines for accurate property
             klines = null;
-        }
-
-        public async Task UpdateSymbol(string symbol, KlineInterval interval)
-        {
-            using var model = new Model();
-
-            Kline lastKline = model.Klines.OrderByDescending(k => k.KlineId).First();
-
-            var binanceClient = new BinanceRestClient();
-
-            bool incomplete = true;
-            int numberOfKlines = 0;
-            List<Kline> klinesUpdate = new List<Kline>();
-            Kline kline;
-            TimeSpan timeSpan;
-            int iteration = 0;
-            do
-            {
-                Program.ShowMessage("Last kline: " + lastKline.OpenTime);
-
-                timeSpan = new TimeSpan(0, 0, 1000 * 60 * 60 * iteration);
-                var exchangeKlinesInfo = await binanceClient.SpotApi.ExchangeData
-                    .GetKlinesAsync(symbol, interval, startTime: lastKline.OpenTime + timeSpan, limit: 1000);
-                Program.ShowMessage("Exchange success: " + exchangeKlinesInfo.Success + ", Error: " + exchangeKlinesInfo.Error);
-
-                try
-                {
-                    var exchangeKlines = exchangeKlinesInfo.Data.ToList();
-                    for (int i = 0; i < exchangeKlines.Count; i++)
-                    {
-                        kline = new Kline(exchangeKlines[i]);
-                        kline.KlineId = exchangeKlines[i].GetHashCode();
-                        klinesUpdate.Add(kline);
-                    }
-
-                    if (exchangeKlines.Count < 1000)
-                        incomplete = false;
-                }
-                catch (Exception e)
-                {
-                    Program.ShowMessage("Addind klines to update error: " + e.Message);
-                }
-
-                /* Idea
-                 * Я збираю клінії в один масив, не присвоюючи їм айді, а потім
-                 * їх рахую та упорядковую - це допоможе по два рази не перезапитувати
-                 * в бінансу масив кліній. Тож топ ідея х2 швидкості.
-                 * 1) Зібрати 1к кліній
-                 * 
-                 * 2) Чи їх справді 1к?
-                 * - так
-                 * 3) Цикл не закінчений
-                 * - ні
-                 * 3) Цикл закінчений
-                 * 
-                 * 4) Присвоїти всі лінії до масиву
-                 * 5) Переробити їм айпі
-                 * 6) Якщо треба то повторити
-                 */
-
-                iteration++;
-            } while (incomplete);
-
-            try
-            {
-                var update = klinesUpdate.OrderBy(k => k.OpenTime);
-                klinesUpdate = update.ToList();
-
-                lastKline = klinesUpdate[0];
-                model.Update(lastKline);
-                await model.SaveChangesAsync();
-            }
-            catch(Exception e)
-            {
-                Program.ShowMessage("Updating database error: " + e.Message);
-                if(e.InnerException != null)
-                {
-                    Program.ShowMessage("Inner exeption: " + e.InnerException);
-                }
-            }
-            Program.ShowMessage("Last kline updated");
-
-            for (int i = 1; i < klinesUpdate.Count; i++)
-            {
-                klinesUpdate[i].KlineId = i + lastKline.KlineId;
-                model.Add(klinesUpdate[i]);
-                Program.ShowMessage(".");
-            }
-
-            await model.SaveChangesAsync();
-
-            //Updating field for accurate property
-            klines = GetListOfAllAvailableKlines();
         }
 
         public async Task WriteNewOrderDown(BinanceFuturesOrder order)
@@ -303,9 +163,78 @@ namespace VBTBotConsole3.Controllers
             {
                 using var model = new Model();
 
+                Program.ShowMessage("Start installing...");
+
                 model.Database.EnsureCreated();
 
+                //If database containes kline we have to start updating same klines and installing new ones
+                var firstDbKline = GetLastDbKline();
 
+                if(firstDbKline != null)
+                {
+                    using (var client = new BinanceRestClient())
+                    {
+                        //Update first kline
+                        var binanceKline = await client.SpotApi.ExchangeData.GetKlinesAsync(
+                            "BNBUSDT", KlineInterval.OneHour, startTime: firstDbKline.OpenTime, limit: 1);
+
+                        firstDbKline.Update(binanceKline.Data.First());
+                        
+                        UpdateKline(new Kline(firstDbKline, "BNBUSDC"));
+
+                        //Install new klines if needed
+                        var isKlines = false;
+                        do
+                        {
+                            firstDbKline = GetLastDbKline();
+                            var binanceKlines = await client.SpotApi.ExchangeData.GetKlinesAsync(
+                            "BNBUSDT", KlineInterval.OneHour, startTime: firstDbKline.CloseTime);
+
+                            isKlines = binanceKlines.Data.Any();
+                            if(binanceKlines.Data.Any())
+                            {
+                                WriteDownKlinesList(binanceKlines.Data.ToList());
+                            }
+
+                        } while (isKlines);
+                        Program.ShowMessage("Klines installed :)");
+                    }
+                }
+                else
+                {
+                    using (var client = new BinanceRestClient())
+                    {
+                        Program.ShowMessage("New klines installing");
+
+                        //Install new klines if needed
+                        var isKlines = false;
+                        do
+                        {
+                            firstDbKline = GetLastDbKline();
+
+                            WebCallResult<IBinanceKline[]> binanceKlines;
+                            if (firstDbKline == null)
+                            {
+                                binanceKlines = await client.SpotApi.ExchangeData.GetKlinesAsync(
+                            "BNBUSDC", KlineInterval.OneHour, startTime: new DateTime(2007, 1, 31));
+                            }
+                            else
+                            {
+                                binanceKlines = await client.SpotApi.ExchangeData.GetKlinesAsync(
+                            "BNBUSDC", KlineInterval.OneHour, startTime: firstDbKline.CloseTime);
+                                Program.ShowMessage($"First kline in database: {firstDbKline.ToString()}");
+                            }
+
+                            isKlines = binanceKlines.Data.Any();
+                            if (binanceKlines.Data.Any())
+                            {
+                                WriteDownKlinesList(binanceKlines.Data.ToList());
+                            }
+
+                        } while (isKlines);
+                        Program.ShowMessage("Klines installed :)");
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -314,25 +243,25 @@ namespace VBTBotConsole3.Controllers
             }
         }
 
-        static async Task<Kline> GetFirstKlineAsync(string symbol, KlineInterval interval)
+        static async Task<Kline> GetFirstKlineAsync(string symbol, KlineInterval interval, DateTime dateTime = default)
         {
             try
             {
-                //
+                //We get imposiible start time and get 1 kline, so it has to be the first one
                 var client = new BinanceRestClient();
                 var result = await client.UsdFuturesApi.ExchangeData
                     .GetKlinesAsync(symbol, interval,
-                                    startTime: new DateTime(2007, 1, 31), limit: 1);
+                                    startTime: dateTime, limit: 1);
 
                 if (result.Success && result.Data.Any())
                 {
                     var first = result.Data.First();
                     Console.WriteLine($"Earliest Kline open time: {first.OpenTime}");
-                    return new Kline(result.Data.FirstOrDefault());
+                    return new Kline(first, "BNBUSDC");
                 }
                 else
                 {
-                    Console.WriteLine($"Error or no data: {result.Error}");
+                    throw new Exception($"Error or no data: {result.Error}");
                     return null;
                 }
             }
@@ -345,32 +274,93 @@ namespace VBTBotConsole3.Controllers
             return null;
         }
 
-        static async Task<Kline> GetLastKlineAsync()
+        static Kline GetLastDbKline()
         {
             try
             {
                 using (var db = new Model())
                 {
-                    var lastKline = await db.Klines
-                                            .OrderByDescending(k => k.OpenTime)
-                                            .FirstOrDefaultAsync();
-
-                    if (lastKline != null)
+                    if (db.Klines.Any())
                     {
-                        Console.WriteLine($"Latest kline at {lastKline.OpenTime}");
+                        var lastKline = db.Klines.OrderByDescending(k => k.OpenTime)
+                                            .First();
+                        Program.ShowMessage($"Latest kline at {lastKline.OpenTime}");
                         return lastKline;
                     }
 
+                    Program.ShowMessage("There are no klines in database.");
                     return null;
                 }
             }
             catch (Exception e)
             {
                 Log.Error(e, "An error occurred while getting last kline from the databse.");
-                Program.ShowMessage("DB error in GetFirstKline: " + e.Message);
+                Program.ShowMessage("DB error in GetLastDBKline: " + e.Message);
             }
 
             return null;
+        }
+
+        static void WriteDownKlinesList(List<IBinanceKline> klinesInterface)
+        {
+            try
+            {
+                using var model = new Model();
+
+                List<Kline> klines = new List<Kline>();
+
+                //Converts IBinanceKline list into a Kline list
+                foreach (var kline in klinesInterface)
+                {
+                    klines.Add(new Kline(kline, "BNBUSDC"));
+                }
+
+                model.Klines.AddRange(klines);
+                model.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "An error occured while writing down klines list.");
+                Program.ShowMessage("DB error in WriteDownKlinesList: " + e.Message);
+            }
+        }
+
+        static async Task WriteDownKlineAsync(Kline kline)
+        {
+            try
+            {
+                using var model = new Model();
+
+                await model.Klines.AddAsync(kline);
+                await model.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "An error occured while writing down klines list.");
+                Program.ShowMessage("DB error in WriteDownKlinesList: " + e.Message);
+            }
+        }
+
+        static void UpdateKline(Kline kline)
+        {
+            try
+            {
+                using var model = new Model();
+
+                var updatekline = model.Klines.Where(k => k.OpenTime == kline.OpenTime).First();
+                if(updatekline != null)
+                {
+                    updatekline.Update(kline);
+
+                    model.Update(updatekline);
+                    model.SaveChanges();
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "An error occured while writing down klines list.");
+                Program.ShowMessage("DB error in WriteDownKlinesList: " + e.Message);
+            }
         }
     }
 }

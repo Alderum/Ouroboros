@@ -22,5 +22,16 @@ namespace VBTBotConsole3
         // special "local" folder for your platform.
         protected override void OnConfiguring(DbContextOptionsBuilder options)
             => options.UseSqlite($"Data Source={DbPath}");
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            builder.Entity<Kline>()
+                .HasKey(k => new { k.SymbolId, k.OpenTime });
+
+            // Drop the uniqueness:
+            builder.Entity<Kline>()
+                .HasIndex(k => new { k.SymbolId, k.OpenTime })
+                .IsUnique(false);
+        }
     }
 }

@@ -5,7 +5,7 @@
 namespace VBTBotConsole3.Migrations
 {
     /// <inheritdoc />
-    public partial class IBinanceKline2 : Migration
+    public partial class NewKeyLogic3 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

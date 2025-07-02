@@ -71,7 +71,7 @@ namespace VBTBotConsole3.Controllers
             try
             {
                 //Updating database for actual market
-                await controller.ModelController.UpdateSymbol("BNBUSDT", KlineInterval.OneHour);
+                await ModelController.InstallKlines();
 
                 //Is it good to enter long position
                 bool enterSignal = indicator.CheckMarketForShort();

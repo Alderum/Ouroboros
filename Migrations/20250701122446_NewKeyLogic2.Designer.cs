@@ -11,8 +11,8 @@ using VBTBotConsole3;
 namespace VBTBotConsole3.Migrations
 {
     [DbContext(typeof(Model))]
-    [Migration("20250628113034_IBinanceKline")]
-    partial class IBinanceKline
+    [Migration("20250701122446_NewKeyLogic2")]
+    partial class NewKeyLogic2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -144,11 +144,10 @@ namespace VBTBotConsole3.Migrations
 
             modelBuilder.Entity("VBTBotConsole3.Kline", b =>
                 {
-                    b.Property<int>("KlineId")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("SymbolId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal>("Close")
+                    b.Property<DateTime>("OpenTime")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("ClosePrice")
@@ -157,31 +156,16 @@ namespace VBTBotConsole3.Migrations
                     b.Property<DateTime>("CloseTime")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("DateTime")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("High")
-                        .HasColumnType("TEXT");
-
                     b.Property<decimal>("HighPrice")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Interval")
+                    b.Property<int>("KlineId")
                         .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Low")
-                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("LowPrice")
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal>("Open")
-                        .HasColumnType("TEXT");
-
                     b.Property<decimal>("OpenPrice")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("OpenTime")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("QuoteVolume")
@@ -199,7 +183,11 @@ namespace VBTBotConsole3.Migrations
                     b.Property<decimal>("Volume")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("KlineId");
+                    b.HasKey("SymbolId", "OpenTime");
+
+                    b.HasIndex("SymbolId");
+
+                    b.HasIndex("SymbolId", "OpenTime");
 
                     b.ToTable("Klines");
                 });

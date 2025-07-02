@@ -70,7 +70,7 @@ namespace VTB
                     case "sdb":
                         //Get klines and show them
 
-                        var klines = controller.ModelController.Klines;
+                        var klines = controller.ModelController.Klines.OrderBy(k => k.OpenTime).ToList();
 
                         for (int i = 0; i < klines.Count; i++)
                         {
@@ -91,7 +91,7 @@ namespace VTB
 
                     case "dwnBNBUSDT":
                         //Use model function to download the data from Binance server
-                        await controller.ModelController.WriteDownSymbolInfo("BNBUSDT", KlineInterval.OneHour);
+                        await ModelController.InstallKlines();
                         break;
 
                     case "clr":
@@ -128,10 +128,9 @@ namespace VTB
 
 
                     case "updb":
-                        Console.WriteLine("Write symbol:");
-                        var symbol = Console.ReadLine();
+                        Console.WriteLine("Updating BNBUSDC...");
 
-                        await controller.ModelController.UpdateSymbol(symbol, KlineInterval.OneHour);
+                        await ModelController.InstallKlines();
                         break;
 
                     case "shord":
@@ -144,7 +143,7 @@ namespace VTB
                         {
                             BinanceFuturesOrder filledOrder;
                             Console.Write("Symbol for your order: ");
-                            symbol = Console.ReadLine();
+                            var symbol = Console.ReadLine();
                             Console.Write("Amount of your order: ");
                             var amount = Convert.ToDecimal(Console.ReadLine());
                             Console.WriteLine("Are you sure you want to put position with amount of: " + amount + "? (Y/N)");
@@ -165,7 +164,7 @@ namespace VTB
                     case "close position":
                         try
                         {
-                            symbol = Console.ReadLine();
+                            var symbol = Console.ReadLine();
                             var amount = Convert.ToDecimal(Console.ReadLine());
                             Console.WriteLine("Are you sure you want to put position with amount of: " + amount + "? (Y/N)");
                             answer = Console.ReadLine();
