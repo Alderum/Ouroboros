@@ -1,11 +1,19 @@
-﻿namespace VBTBotConsole3.Indicators
+﻿using VBTBotConsole3.Controllers;
+
+namespace VBTBotConsole3.Indicators
 {
     class MovingAvarage
     {
+        #region Fields and properties
+
         public int Id { get; set; }
         public DateTime DateTime { get; set; }
         public decimal Value { get; set; }
         public int Depth { get; set; }
+
+        #endregion
+
+        #region Methods
 
         public static List<MovingAvarage> GetATR(List<Kline> klines, decimal depth)
         {
@@ -59,6 +67,7 @@
             return atrs;
         }
 
+        //ATR from Trading View is claculated differently than normal ATR
         public static List<MovingAvarage> GetATRFromTV(List<Kline> klines, decimal depth)
         {
             //List that will be returned
@@ -101,7 +110,7 @@
 
             //First ema calculating
             MovingAvarage ema = new MovingAvarage();
-            if(klines.Count != 0)
+            if (klines.Count != 0)
             {
                 ema.Value = klines[0].ClosePrice * weighting + klines[0].OpenPrice * (1 - weighting);
                 ema.DateTime = klines[0].OpenTime;
@@ -145,5 +154,20 @@
 
             return rmas;
         }
+
+        public static List<MovingAvarage> GetEMAOfAllCandles(int depth)
+        {
+            var klines = ModelController.Klines;
+            List<MovingAvarage> ema = MovingAvarage.GetEMA(klines, (decimal)depth);
+
+            return ema;
+        }
+
+        public override string ToString()
+        {
+            return $"Moving Avarage ID: {Id}, DateTime: {DateTime}, Value: {Value}, Depth: {Depth}";
+        }
+
+        #endregion
     }
 }

@@ -1,5 +1,4 @@
-﻿using VBTBotConsole3.Indicators;
-
+﻿/*
 namespace VBTBotConsole3.Controllers
 {
     class Controller
@@ -54,14 +53,9 @@ namespace VBTBotConsole3.Controllers
 
         #region Methods
 
-        public List<MovingAvarage> GetEMAOfAllCandles(int depth)
-        {
-            var klines = ModelController.Klines;
-            List<MovingAvarage> ema = MovingAvarage.GetEMA(klines, (decimal)depth);
-
-            return ema;
-        }
+        
 
         #endregion
     }
 }
+*/
