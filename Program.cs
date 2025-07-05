@@ -2,9 +2,12 @@
 using Binance.Net.Enums;
 using Binance.Net.Objects.Models.Futures;
 using CryptoExchange.Net.Authentication;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Formatting.Json;
-using System.Security.Cryptography.X509Certificates;
 using VBTBotConsole3;
 using VBTBotConsole3.Controllers;
 using VBTBotConsole3.Indicators;
@@ -43,13 +46,49 @@ namespace VTB
                 )
                 .CreateLogger();
 
-            using (var db = new Model())
-            {
-                db.Database.EnsureCreated();
-            }
+            //Generic Host configuration
 
-            //Console.WriteLine("Starting trading session");
-            //TradeController.StartTrading();
+            var host = Host.CreateDefaultBuilder()
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders(); // ❌ Remove all logging outputs (including console)
+                })
+                .ConfigureServices((context, services) =>
+                {
+                    // Add your EF Core context
+                    services.AddDbContext<Model>(options =>
+                    {
+                        var dbPath = Path.Combine(AppContext.BaseDirectory, "local.db");
+                        options.UseSqlite($"Data Source={dbPath}");
+                    });
+
+                    // Register controllers
+                    services.AddScoped<ModelController>();
+                    services.AddScoped<TradeController>();
+                    services.AddScoped<IndicatorController>();
+                    services.AddScoped<BinanceRestClient>();
+                }).Build();
+
+            using var scope = host.Services.CreateScope();
+
+            var db = scope.ServiceProvider.GetRequiredService<Model>();
+            db.Database.Migrate();
+
+            var tradeController = scope.ServiceProvider.GetRequiredService<TradeController>();
+            var modelController = scope.ServiceProvider.GetRequiredService<ModelController>();
+
+            Console.WriteLine("Starting trading session");
+            Log.Information("Trading session started");
+            tradeController.StartTrading();
+
+            string line;
+            do
+            {
+                line = Console.ReadLine();
+            } while (line.ToUpper().Equals("STOP") || line.ToUpper().Equals("S"));
+
+            tradeController.StopTrading();
+            Log.Information("Trading session ended");
 
             #region CommandLine
             string command = "";
@@ -75,29 +114,26 @@ namespace VTB
 
                     case "sdb":
                         //Get klines and show them
-
-                        var klines = ModelController.Klines.OrderBy(k => k.OpenTime).ToList();
-
-                        for (int i = 0; i < klines.Count; i++)
+                        if(modelController.GetKlines().Any())
                         {
-                            Console.WriteLine("Kline Id: " + klines[i].KlineId
-                                + " High: " + klines[i].HighPrice +
-                                 " Open: " + klines[i].OpenPrice +
-                                 " Close: " + klines[i].ClosePrice +
-                                 " Low: " + klines[i].LowPrice +
-                                 " Interval: " + (klines[i].CloseTime - klines[i].OpenTime) +
-                                 " Date: " + klines[i].OpenTime);
+                            var klines = modelController.GetKlines().OrderBy(k => k.OpenTime);
+
+                            foreach (var kline in klines)
+                                Console.WriteLine(kline.ToString() + "\n");
                         }
+                        else
+                            Console.WriteLine("No data D:");
+
                         break;
 
                     case "clrdb":
                         //Get klines and remove them
-                        ModelController.ClearDatabase();
+                        modelController.ClearDatabase();
                         break;
 
                     case "dwnBNBUSDT":
                         //Use model function to download the data from Binance server
-                        await ModelController.InstallKlines();
+                        await modelController.InstallKlines();
                         break;
 
                     case "clr":
@@ -106,7 +142,7 @@ namespace VTB
                         string answer = Console.ReadLine();
 
                         if (answer.ToUpper().Equals("Y") || answer.ToUpper().Equals("YES"))
-                            ModelController.DetouchDatabase();
+                            modelController.DetouchDatabase();
                         else
                             Console.WriteLine("Ok, we won't disconnect current database :)");
                         break;
@@ -117,7 +153,7 @@ namespace VTB
                             Console.WriteLine("Write the depth of EMA you want to have? (BNBUSDT 1 hour)");
                             var depth = Convert.ToInt32(Console.ReadLine());
 
-                            var emas = MovingAvarage.GetEMAOfAllCandles(depth);
+                            var emas = MovingAvarage.GetEMA(modelController.GetKlines(), depth);
 
                             foreach (var ema in emas)
                             {
@@ -134,12 +170,12 @@ namespace VTB
                     case "updb":
                         Console.WriteLine("Updating BNBUSDC...");
 
-                        await ModelController.InstallKlines();
+                        await modelController.InstallKlines();
                         break;
 
                     case "shord":
-                        TradeController.ShowBalance();
-                        TradeController.ShowOpenPositions();
+                        tradeController.ShowBalance();
+                        tradeController.ShowOpenPositions();
                         break;
 
                     case "open position":
@@ -154,7 +190,7 @@ namespace VTB
                             answer = Console.ReadLine();
 
                             if (answer.ToLower().Equals("y") || answer.ToLower().Equals("yes"))
-                                await TradeController.OpenMarketShortPosition(symbol, amount);
+                                tradeController.OpenMarketShortPosition(symbol, amount);
                             else
                                 break;
 
@@ -173,7 +209,7 @@ namespace VTB
                             Console.WriteLine("Are you sure you want to put position with amount of: " + amount + "? (Y/N)");
                             answer = Console.ReadLine();
                             if (answer.ToLower().Equals("y") || answer.ToLower().Equals("yes"))
-                                await TradeController.CloseMarketShortPosition(symbol, amount);
+                                tradeController.CloseMarketShortPosition(symbol, amount);
                             else
                                 break;
 
@@ -187,7 +223,7 @@ namespace VTB
 
                     case "start":
                         Console.WriteLine("To end the trading session enter 'stop'");
-                        TradeController.StartTrading();
+                        tradeController.StartTrading();
                         answer = "";
                         while (!answer.ToUpper().Equals("STOP"))
                         {
@@ -195,21 +231,21 @@ namespace VTB
                             if (!answer.ToUpper().Equals("STOP"))
                                 Console.WriteLine("Write 'stop' to stop trading");
                         }
-                        TradeController.StopTrading();
+                        tradeController.StopTrading();
                         Console.WriteLine("You have stoped trading. Write start to continue ^_^");
                         break;
 
                     case "chinter":
                         Console.WriteLine("Write an interval in wich price will be checked:");
                         double interval = Convert.ToDouble(Console.ReadLine());
-                        TradeController.CheckingInterval = interval;
+                        tradeController.TimerInterval = interval;
                         Console.WriteLine("Interval of " + interval + " ms is set.");
                         break;
 
                     case "show orders history":
                         try
                         {
-                            var orders = ModelController.Orders;
+                            var orders = modelController.GetOrders();
                             ShowOrders(orders);
                         }
                         catch (Exception e)
@@ -221,7 +257,7 @@ namespace VTB
                     case "show above orders":
                         try
                         {
-                            var orders = ModelController.GetAllFuturesOrdersAbove();
+                            var orders = modelController.GetOrdersAbove();
                             ShowOrders(orders);
                             decimal quantity = 0;
                             foreach (var order in orders)
@@ -238,7 +274,7 @@ namespace VTB
                         break;
 
                     case "delete orders history":
-                        ModelController.ClearBinanceFuturesOrders();
+                        modelController.ClearBinanceFuturesOrders();
                         Console.WriteLine("Orders history deleted )))");
                         break;
 
@@ -254,7 +290,7 @@ namespace VTB
                             Console.WriteLine("Order symbol: " + order.Symbol);
                             Console.WriteLine("Order price: " + order.Price);
 
-                            await ModelController.WriteNewOrderDown(order);
+                            modelController.WriteNewOrderDown(order);
                             Console.WriteLine("Order is written down to databse :)");
                         }
                         catch (Exception e)
@@ -277,7 +313,7 @@ namespace VTB
                             Console.WriteLine("Order symbol: " + order.Symbol);
                             Console.WriteLine("Order price: " + order.Price);
 
-                            await ModelController.WriteNewOrderDown(order);
+                            modelController.WriteNewOrderDown(order);
                         }
                         catch(Exception e)
                         {

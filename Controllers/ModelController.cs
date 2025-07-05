@@ -5,113 +5,79 @@ using Binance.Net.Objects.Models.Futures;
 using CryptoExchange.Net.Objects;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+
 using Program = VTB.VTB;
 
 namespace VBTBotConsole3.Controllers
 {
-    static class ModelController
+    class ModelController
     {
         #region Fields and properties
 
-        static List<BinanceFuturesOrder> orders;
-        public static List<BinanceFuturesOrder> Orders {
-            get
-            {
-                return new Model().BinanceFuturesOrders.ToList();
-            }
-        }
-
-        static List<Kline> klines;
-        public static List<Kline> Klines
-        {
-            get
-            {
-                return new Model().Klines.ToList();
-            }
-        }
+        private readonly Model model;
+        private readonly BinanceRestClient restClient;
 
         #endregion
 
+        public ModelController(Model model, BinanceRestClient restClient)
+        {
+            this.model = model;
+            this.restClient = restClient;
+        }
 
         #region Methods
 
         #region Get methods
 
-        //Returns list of klines stored in Entity Framework database
-        static List<Kline> GetListOfAllAvailableKlines()
+        //Returns list of binance futures orders stored in the database
+        public List<BinanceFuturesOrder> GetOrders()
         {
-            //Get Klines from the database
-            using var model = new Model();
-            try
-            {
-                List<Kline> klines = model.Klines.OrderBy(k => k.KlineId).ToList();
-                return klines;
-            }
-            catch (Exception e)
-            {
-                Log.Error(e, "An error occured while getting list of all available klines from the database.");
-                Program.ShowMessage("DB error: " + e.Message);
-            }
-
-            return null;
+            return model.BinanceFuturesOrders.OrderBy(o => o.CreateTime).ToList();
         }
 
-        //Returns list of binance futures orders stored in Entity Framework database
-        static List<BinanceFuturesOrder> GetBinanceFuturesOrders()
+        //Returns list of klines stored in the database
+        public List<Kline> GetKlines()
         {
-            using var model = new Model();
-
-            try
-            {
-                List<BinanceFuturesOrder> orders = model.BinanceFuturesOrders.OrderBy(k => k.CreateTime).ToList();
-
-                if (orders != null)
-                    return orders;
-            }
-            catch (Exception e)
-            {
-                Log.Error(e, "An error occured while getting binance futures orders from Binance service.");
-                Program.ShowMessage("DB error: " + e.Message);
-            }
-
-            return null;
+            return model.Klines.OrderBy(k => k.OpenTime).ToList();
         }
 
         //Returns list of binance futures orders stored in database that are above of current price
-        public static List<BinanceFuturesOrder> GetAllFuturesOrdersAbove()
-        {
-            var ordersAbove =
-            from o in orders
-            where o.Price > klines.LastOrDefault().ClosePrice
-            select o;
-
-            List<BinanceFuturesOrder> ordersAboveInList = new List<BinanceFuturesOrder>();
-            foreach (var order in ordersAbove)
-            {
-                ordersAboveInList.Add(order);
-            }
-
-            return ordersAboveInList;
-        }
-
-        //Returns instance of Kline class stored in the database with the latest open time property
-        static Kline GetLastDbKline()
+        public List<BinanceFuturesOrder> GetOrdersAbove()
         {
             try
             {
-                using (var db = new Model())
-                {
-                    if (db.Klines.Any())
-                    {
-                        var lastKline = db.Klines.OrderByDescending(k => k.OpenTime)
-                                            .First();
-                        Program.ShowMessage($"Latest kline at {lastKline.OpenTime}");
-                        return lastKline;
-                    }
+                var ordersAbove =
+                from o in GetOrders()
+                where o.Price > GetKlines().Last().ClosePrice
+                select o;
 
-                    Program.ShowMessage("There are no klines in database.");
-                    return null;
+                return ordersAbove.ToList();
+            }
+            catch(Exception e)
+            {
+                Log.Error(e, "An error occurred while getting binance futures orders above the present price");
+                Program.ShowMessage("DB error in GetOrdersAbove(): " + e.Message);
+            }
+
+            return null;
+        }
+
+        //Returns instance of Kline class stored in the database with the latest open time property
+        Kline GetLastKline()
+        {
+            try
+            {
+                if (model.Klines.Any())
+                {
+                    var lastKline = model.Klines.OrderBy(k => k.OpenTime).Last();
+
+                    Program.ShowMessage("Latest kline in the database:\n" + lastKline.ToString());
+
+                    return lastKline;
                 }
+
+                Program.ShowMessage("There are no klines in database.");
+                return null;
             }
             catch (Exception e)
             {
@@ -127,99 +93,92 @@ namespace VBTBotConsole3.Controllers
         #region Add methods
 
         //Adds new binance futures order to Entity Framework database
-        public static async Task WriteNewOrderDown(BinanceFuturesOrder order)
+        public void WriteNewOrderDown(BinanceFuturesOrder order)
         {
-            using var model = new Model();
-
             model.BinanceFuturesOrders.Add(order);
-            await model.SaveChangesAsync();
-
-            //Updating order list for accurate property manifestation
-            orders = GetBinanceFuturesOrders();
+            model.SaveChanges();
         }
 
         //Adds new klines to the database. If there are no klines: we install all info till the end.
         //If there are klines in the database: we update last and install new ones if needed.
-        public static async Task InstallKlines()
+        public async Task InstallKlines()
         {
             try
             {
-                using var model = new Model();
-
-                Program.ShowMessage("Start installing...");
-
                 //Last available kline in the database
-                var lastDBKline = GetLastDbKline();
+                var lastKline = GetLastKline();
 
                 //If there is last kline in the database we should update it and install new ones
-                if (lastDBKline != null)
+                if (lastKline != null)
                 {
-                    using (var client = new BinanceRestClient())
+                    //Update first kline
+                    var binanceKline = await restClient.SpotApi.ExchangeData.GetKlinesAsync(
+                        "BNBUSDT", KlineInterval.OneHour, startTime: lastKline.OpenTime, limit: 1);
+
+                    lastKline.Update(binanceKline.Data.First());
+
+                    UpdateKline(lastKline);
+
+                    //Install new klines if needed
+                    var areKlines = false;
+                    do
                     {
-                        //Update first kline
-                        var binanceKline = await client.SpotApi.ExchangeData.GetKlinesAsync(
-                            "BNBUSDT", KlineInterval.OneHour, startTime: lastDBKline.OpenTime, limit: 1);
+                        lastKline = GetLastKline();
+                        var binanceKlines = await restClient.SpotApi.ExchangeData.GetKlinesAsync(
+                        "BNBUSDT", KlineInterval.OneHour, startTime: lastKline.CloseTime);
 
-                        lastDBKline.Update(binanceKline.Data.First());
-
-                        UpdateKline(lastDBKline);
-
-                        //Install new klines if needed
-                        var areKlines = false;
-                        do
+                        areKlines = binanceKlines.Data.Any();
+                        if (binanceKlines.Data.Any())
                         {
-                            lastDBKline = GetLastDbKline();
-                            var binanceKlines = await client.SpotApi.ExchangeData.GetKlinesAsync(
-                            "BNBUSDT", KlineInterval.OneHour, startTime: lastDBKline.CloseTime);
-
-                            areKlines = binanceKlines.Data.Any();
-                            if (binanceKlines.Data.Any())
+                            List<Kline> klines = new List<Kline>();
+                            foreach (var kline in binanceKlines.Data.ToList())
                             {
-                                WriteDownKlinesList(binanceKlines.Data.ToList());
+                                klines.Add(new Kline(kline, "BNBUSDC"));
                             }
+                            WriteDownKlinesList(klines);
+                        }
 
-                        } while (areKlines);
-                        Program.ShowMessage("Klines installed :)");
-                    }
+                    } while (areKlines);
                 }
                 //If there are no klines in the database we should install only new ones until there
                 //are no more in the Binance API database
                 else
                 {
-                    using (var client = new BinanceRestClient())
+                    Program.ShowMessage("New klines installing");
+
+                    //Install new klines if needed
+                    var areKlines = false;
+                    do
                     {
-                        Program.ShowMessage("New klines installing");
+                        lastKline = GetLastKline();
 
-                        //Install new klines if needed
-                        var areKlines = false;
-                        do
+                        WebCallResult<IBinanceKline[]> binanceKlines;
+                        if (lastKline == null)
                         {
-                            lastDBKline = GetLastDbKline();
+                            //First install
+                            binanceKlines = await restClient.SpotApi.ExchangeData.GetKlinesAsync(
+                        "BNBUSDC", KlineInterval.OneHour, startTime: new DateTime(2007, 1, 31));
+                        }
+                        else
+                        {
+                            //Continue installing
+                            binanceKlines = await restClient.SpotApi.ExchangeData.GetKlinesAsync(
+                        "BNBUSDC", KlineInterval.OneHour, startTime: lastKline.CloseTime);
+                            Program.ShowMessage($"First kline in database:\n {lastKline.ToString()}");
+                        }
 
-                            WebCallResult<IBinanceKline[]> binanceKlines;
-                            if (lastDBKline == null)
-                            {
-                                //First install
-                                binanceKlines = await client.SpotApi.ExchangeData.GetKlinesAsync(
-                            "BNBUSDC", KlineInterval.OneHour, startTime: new DateTime(2007, 1, 31));
-                            }
-                            else
-                            {
-                                //Continue installing
-                                binanceKlines = await client.SpotApi.ExchangeData.GetKlinesAsync(
-                            "BNBUSDC", KlineInterval.OneHour, startTime: lastDBKline.CloseTime);
-                                Program.ShowMessage($"First kline in database: {lastDBKline.ToString()}");
-                            }
+                        areKlines = binanceKlines.Data.Any();
+                        if (binanceKlines.Data.Any())
+                        {
+                            List<Kline> klines = new List<Kline>();
+                            foreach(var kline in binanceKlines.Data.ToList())
+                                {
+                                klines.Add(new Kline(kline, "BNBUSDC"));
+                                }
+                            WriteDownKlinesList(klines);
+                        }
 
-                            areKlines = binanceKlines.Data.Any();
-                            if (binanceKlines.Data.Any())
-                            {
-                                WriteDownKlinesList(binanceKlines.Data.ToList());
-                            }
-
-                        } while (areKlines);
-                        Program.ShowMessage("Klines installed :)");
-                    }
+                    } while (areKlines);
                 }
             }
             catch (Exception e)
@@ -230,22 +189,23 @@ namespace VBTBotConsole3.Controllers
         }
 
         //Adds new klines to the database
-        static void WriteDownKlinesList(List<IBinanceKline> klinesInterface)
+        void WriteDownKlinesList(List<Kline> klines)
         {
             try
             {
-                using var model = new Model();
+                var existing = model.Klines
+                    .Select(k => new { k.SymbolId, k.OpenTime })
+                    .ToHashSet();
 
-                List<Kline> klines = new List<Kline>();
+                var toAdd = klines
+                    .Where(k => !existing.Contains(new { k.SymbolId, k.OpenTime }))
+                    .ToList();
 
-                //Converts IBinanceKline list into a Kline list
-                foreach (var kline in klinesInterface)
+                if (toAdd.Any())
                 {
-                    klines.Add(new Kline(kline, "BNBUSDC"));
+                    model.Klines.AddRange(toAdd);
+                    model.SaveChanges();
                 }
-
-                model.Klines.AddRange(klines);
-                model.SaveChanges();
             }
             catch (Exception e)
             {
@@ -259,72 +219,41 @@ namespace VBTBotConsole3.Controllers
         #region Delete methods
 
         //Deletes all klines stored in the database
-        public static async void ClearDatabase()
+        public void ClearDatabase()
         {
-            using var model = new Model();
-
-            var klines = await model.Klines
-                            .OrderBy(k => k.KlineId).ToListAsync();
-
-            model.Klines.RemoveRange(klines);
-            await model.SaveChangesAsync();
-
-            //Updating list of klines for accurate property
-            klines = GetListOfAllAvailableKlines();
+            model.Klines.ExecuteDelete();
+            model.SaveChanges();
         }
 
         //Detouches all enetities from the database
-        public static void DetouchDatabase()
+        public void DetouchDatabase()
         {
-            using var model = new Model();
-
             model.ChangeTracker.Clear();
-            //Updating list of klines for accurate property
-            klines = null;
         }
 
         //Deletes all binanace fututres orders from Entity Framework database
-        public static void ClearBinanceFuturesOrders()
+        public void ClearBinanceFuturesOrders()
         {
-            using var model = new Model();
-
-            var rows = orders;
-            foreach (var row in rows)
-            {
-                model.BinanceFuturesOrders.Remove(row);
-            }
+            model.BinanceFuturesOrders.ExecuteDelete();
             model.SaveChanges();
-
-            //Updating order list for accurate property manifestation
-            orders = GetBinanceFuturesOrders();
         }
 
         //Deletes given binance futures orders from the database
-        public static void ClearBinanceFuturesOrders(List<BinanceFuturesOrder> orders)
+        public void ClearBinanceFuturesOrders(List<BinanceFuturesOrder> orders)
         {
-            using var model = new Model();
-
-            foreach (var order in orders)
-            {
-                model.BinanceFuturesOrders.Remove(order);
-            }
+            model.BinanceFuturesOrders.RemoveRange(orders);
             model.SaveChanges();
-
-            //Updating order list for accurate property manifestation
-            orders = GetBinanceFuturesOrders();
         }
 
         #endregion
-
+        
         #region Update methods
 
         //Updates kline in the database not touching its ID
-        static void UpdateKline(Kline kline)
+        void UpdateKline(Kline kline)
         {
             try
             {
-                using var model = new Model();
-
                 var updatekline = model.Klines.Where(k => k.OpenTime == kline.OpenTime).First();
                 if (updatekline != null)
                 {
@@ -342,6 +271,11 @@ namespace VBTBotConsole3.Controllers
         }
 
         #endregion
+
+        public void Migrate()
+        {
+            model.Database.Migrate();
+        }
 
         #endregion
     }

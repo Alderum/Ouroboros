@@ -105,7 +105,6 @@ namespace VBTBotConsole3.Indicators
                 return null;
 
             List<MovingAvarage> emas = new List<MovingAvarage>();
-            Console.WriteLine("Klines count: " + klines.Count);
             decimal weighting = 2 / (depth + 1);
 
             //First ema calculating
@@ -155,17 +154,9 @@ namespace VBTBotConsole3.Indicators
             return rmas;
         }
 
-        public static List<MovingAvarage> GetEMAOfAllCandles(int depth)
-        {
-            var klines = ModelController.Klines;
-            List<MovingAvarage> ema = MovingAvarage.GetEMA(klines, (decimal)depth);
-
-            return ema;
-        }
-
         public override string ToString()
         {
-            return $"Moving Avarage ID: {Id}, DateTime: {DateTime}, Value: {Value}, Depth: {Depth}";
+            return $"Moving Avarage ID: {Id}\t| DateTime: {DateTime}\t| Value: {Value}\t| Depth: {Depth}";
         }
 
         #endregion

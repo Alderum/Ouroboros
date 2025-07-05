@@ -1,5 +1,4 @@
 ﻿using Binance.Net.Clients;
-using CryptoExchange.Net.Authentication;
 using Binance.Net.Enums;
 using System.Timers;
 using Serilog;
@@ -9,14 +8,19 @@ using Program = VTB.VTB;
 
 namespace VBTBotConsole3.Controllers
 {
-    static class TradeController
+    class TradeController
     {
         #region Properties
-        static Timer timer = new Timer()
+        private readonly ModelController modelController;
+        private readonly IndicatorController indicatorController;
+        private readonly BinanceRestClient restClient;
+
+        Timer timer = new Timer()
         {
-            Interval = 10000
+            Interval = 60000
         };
-        public static double CheckingInterval
+
+        public double TimerInterval
         {
             get
             {
@@ -30,14 +34,22 @@ namespace VBTBotConsole3.Controllers
 
         #endregion
 
+        public TradeController(BinanceRestClient restClient, ModelController modelController, IndicatorController indicatorController)
+        {
+            this.modelController = modelController;
+            this.indicatorController = indicatorController;
+            this.restClient = restClient;
+
+            timer.Elapsed += async (s, e) => await Tick(s, e);
+        }
+
         #region Methods
 
-        public static async void ShowBalance()
+        public async void ShowBalance()
         {
             try
             {
                 //Asking Binance server about current account balances and showing it
-                var restClient = new BinanceRestClient();
                 var balance = await restClient.UsdFuturesApi.Account.GetBalancesAsync();
                 Program.ShowMessage("Balance: " + balance.Data.MaxBy(k => k.AvailableBalance).WalletBalance);
             }
@@ -50,16 +62,19 @@ namespace VBTBotConsole3.Controllers
             }
         }
 
-        static async Task Tick(object source, ElapsedEventArgs args)
+        async Task Tick(object source, ElapsedEventArgs args)
         {
             try
             {
                 //Updating database for actual market
-                await ModelController.InstallKlines();
+                Program.ShowMessage("\nInstalling klines info");
+                await modelController.InstallKlines();
+                Program.ShowMessage("Klines installed :)");
+
+                Program.ShowMessage("Klines number: " + modelController.GetKlines().Count);
 
                 //Is it good to enter long position
-                bool enterSignal = IndicatorController.CheckMarketForShort();
-                Program.ShowMessage("ID of current thread: " + Thread.CurrentThread.ManagedThreadId);
+                bool enterSignal = indicatorController.CheckMarketForShort();
                 Program.ShowMessage("Is it good to enter short now: " + enterSignal);
                 if (enterSignal)
                 {
@@ -67,11 +82,11 @@ namespace VBTBotConsole3.Controllers
                 }
 
                 //Is it good to quit short position
-                bool quitSignal = IndicatorController.CheckMarketForLong();
+                bool quitSignal = indicatorController.CheckMarketForLong();
                 Program.ShowMessage("Is it good to quit short now: " + quitSignal);
                 if (quitSignal)
                 {
-                    var ordersAbove = from o in ModelController.GetAllFuturesOrdersAbove()
+                    var ordersAbove = from o in modelController.GetOrdersAbove()
                                       where o.Side == OrderSide.Sell
                                       select o;
 
@@ -84,9 +99,9 @@ namespace VBTBotConsole3.Controllers
 
                     //If there is no orders above do nothing
                     if (quantity != 0)
-                        await CloseMarketShortPosition("BNBUSDC", quantity);
+                        CloseMarketShortPosition("BNBUSDC", quantity);
 
-                    ModelController.ClearBinanceFuturesOrders(ordersAbove.ToList());
+                    modelController.ClearBinanceFuturesOrders(ordersAbove.ToList());
                 }
             }
             catch (Exception e)
@@ -97,11 +112,10 @@ namespace VBTBotConsole3.Controllers
         }
 
         //Checking is client authenticated or not with BinanceRestClient
-        public static bool IsClientAuthenticated()
+        public bool IsClientAuthenticated()
         {
             try
             {
-                var restClient = new BinanceRestClient();
                 var isAuthenticated = restClient.SpotApi.Authenticated;
                 return isAuthenticated;
             }
@@ -115,11 +129,10 @@ namespace VBTBotConsole3.Controllers
 
         #region Positions methods
 
-        public static async void ShowOpenPositions()
+        public async void ShowOpenPositions()
         {
             try
             {
-                var restClient = new BinanceRestClient();
                 var openOrders = await restClient.UsdFuturesApi.Trading.GetPositionsAsync();
                 var openOrdersList = openOrders.Data.ToList();
                 foreach (var o in openOrdersList)
@@ -134,11 +147,10 @@ namespace VBTBotConsole3.Controllers
             }
         }
 
-        public static async void TryOpenLimitPosition()
+        public async void TryOpenLimitPosition()
         {
             try
             {
-                var restClient = new BinanceRestClient();
                 var result = await restClient.UsdFuturesApi.Trading.PlaceOrderAsync("BNBUSDT", OrderSide.Sell, FuturesOrderType.Limit, (decimal)0.01, 640, PositionSide.Short, TimeInForce.GoodTillCanceled);
                 if (result.Error != null)
                     Program.ShowMessage("Binance error: " + result.Error);
@@ -152,11 +164,10 @@ namespace VBTBotConsole3.Controllers
             }
         }
 
-        public static async Task OpenMarketShortPosition(string symbol, decimal amount)
+        public async void OpenMarketShortPosition(string symbol, decimal amount)
         {
             try
             {
-                var restClient = new BinanceRestClient();
                 var result = await restClient.UsdFuturesApi.Trading.PlaceOrderAsync(symbol, OrderSide.Sell, FuturesOrderType.Market, amount, null, PositionSide.Short);
                 result.Data.Price = restClient.SpotApi.ExchangeData.GetPriceAsync(symbol).Result.Data.Price;
                 if (result.Error != null)
@@ -164,7 +175,7 @@ namespace VBTBotConsole3.Controllers
                 else
                 {
                     Program.ShowMessage("Order price: " + result.Data.Price);
-                    await ModelController.WriteNewOrderDown(result.Data);
+                    modelController.WriteNewOrderDown(result.Data);
                     Program.ShowMessage("Order success: " + result.Success);
                 }
             }
@@ -175,11 +186,10 @@ namespace VBTBotConsole3.Controllers
             }
         }
 
-        public static async Task CloseMarketShortPosition(string symbol, decimal amount)
+        public async void CloseMarketShortPosition(string symbol, decimal amount)
         {
             try
             {
-                var restClient = new BinanceRestClient();
                 var result = await restClient.UsdFuturesApi.Trading.PlaceOrderAsync(symbol, OrderSide.Buy, FuturesOrderType.Market, amount, null, PositionSide.Short);
                 result.Data.Price = restClient.SpotApi.ExchangeData.GetPriceAsync(symbol).Result.Data.Price;
 
@@ -188,7 +198,7 @@ namespace VBTBotConsole3.Controllers
                 else
                 {
                     Program.ShowMessage("Order price: " + result.Data.Price);
-                    await ModelController.WriteNewOrderDown(result.Data);
+                    modelController.WriteNewOrderDown(result.Data);
                     Program.ShowMessage("Order success: " + result.Success);
                 }
             }
@@ -201,17 +211,13 @@ namespace VBTBotConsole3.Controllers
 
         #endregion
 
-        public static void StartTrading()
+        public void StartTrading()
         {
-            //Timer tick event
-            timer.Elapsed += async (s, e) => await Tick(s, e);
-            timer.Interval = CheckingInterval;
-
             Console.ForegroundColor = ConsoleColor.Green;
             timer.Start();
         }
 
-        public static void StopTrading()
+        public void StopTrading()
         {
             timer.Stop();
             Console.ForegroundColor = ConsoleColor.White;

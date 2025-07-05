@@ -54,16 +54,15 @@ namespace VBTBotConsole3.Migrations
                 name: "Klines",
                 columns: table => new
                 {
-                    KlineId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
                     SymbolId = table.Column<int>(type: "INTEGER", nullable: false),
                     OpenTime = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    KlineId = table.Column<int>(type: "INTEGER", nullable: false),
+                    CloseTime = table.Column<DateTime>(type: "TEXT", nullable: false),
                     OpenPrice = table.Column<decimal>(type: "TEXT", nullable: false),
                     HighPrice = table.Column<decimal>(type: "TEXT", nullable: false),
                     LowPrice = table.Column<decimal>(type: "TEXT", nullable: false),
                     ClosePrice = table.Column<decimal>(type: "TEXT", nullable: false),
                     Volume = table.Column<decimal>(type: "TEXT", nullable: false),
-                    CloseTime = table.Column<DateTime>(type: "TEXT", nullable: false),
                     QuoteVolume = table.Column<decimal>(type: "TEXT", nullable: false),
                     TradeCount = table.Column<int>(type: "INTEGER", nullable: false),
                     TakerBuyBaseVolume = table.Column<decimal>(type: "TEXT", nullable: false),
@@ -71,8 +70,30 @@ namespace VBTBotConsole3.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Klines", x => x.KlineId);
+                    table.PrimaryKey("PK_Klines", x => new { x.SymbolId, x.OpenTime });
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Klines_CloseTime",
+                table: "Klines",
+                column: "CloseTime",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Klines_OpenTime",
+                table: "Klines",
+                column: "OpenTime",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Klines_SymbolId",
+                table: "Klines",
+                column: "SymbolId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Klines_SymbolId_OpenTime",
+                table: "Klines",
+                columns: new[] { "SymbolId", "OpenTime" });
         }
 
         /// <inheritdoc />

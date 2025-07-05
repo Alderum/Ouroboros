@@ -57,7 +57,9 @@ namespace VBTBotConsole3
 
         public override string ToString()
         {
-            return $"KlineId: {KlineId}, SymbolId: {SymbolId}, OpenTime: {OpenTime}, CloseTime: {CloseTime}, OpenPrice: {OpenPrice}";
+            return $" ID numbers\t\t| Time properties\t\t\t| Price properties \n" +
+                $" KlineId: {KlineId}\t| OpenTime: {OpenTime}  \t| OpenPrice: {OpenPrice}\n" +
+                $" SymbolId: {SymbolId}\t| CloseTime: {CloseTime}\t| ClosePrice: {ClosePrice}";
         }
 
         public void Update(IBinanceKline binanceKline)
